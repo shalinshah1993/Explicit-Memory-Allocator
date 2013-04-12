@@ -76,12 +76,8 @@ For consistency with the libc malloc package, which returns blocks aligned on 8-
 Hints
 
 Use the mdriver –f option.  During initial development, using tiny trace files will simplify debugging and testing.We have included two such trace files (short{1,2}-bal.rep ) that you can use for initial debugging.   
-Use the mdriver –v and –V options.  The –v option will give you a detailed summary for each trace file.  The –V will also indic= ate when each trace file is read, which will help you isolate errors.
-Compile with gcc –g and use a debugger.  A debugger will help you isolate and identify out of bounds memory references. 
-Understand every line = of the malloc implementation in the textbook.=   The textbook has a detailed example of a simple a= llocator based on an implicit free list.  Use this as a point of departure.  Don’t start working on your allocator until you understand everything about the simple implicit list allocator. 
-Encapsulate your point= er arithmetic in C preprocessor macros or gcc in-line functions.  Pointer arithmetic in memory managers is confusing and error-prone because of all the casting that is necessary.  You can reduce the complexity significantly by writing macros for your pointer operations.  See the text for examples.&n= bsp;
-Do your implementation= in stages.  The first 9 traces contain requests to malloc and free.  The last 2 = traces contain requests for realloc, malloc, and free.  We recomme= nd that you start by getting your malloc and free routines working correctly and efficiently on the first 9 traces.  Only then should you turn your attention to the realloc implementation.  For starter= s, build realloc on top of your existi= ng malloc and free implementations.&n= bsp;
-Write a heap consistency checker. Dynamic memory allocators are notoriously tricky beasts to program correctly and efficiently.  = They are difficult to program correctly because they involve a lot of untyped pointer manipulation.  You will fin= d it very helpful to write a heap checker that scans the heap and checks it= for consistency. 
+Use the mdriver –v and –V options.  The –v option will give you a detailed summary for each trace file.  The –V will also indicate when each trace file is read, which will help you isolate errors.
+Compile with gcc –g and use a debugger.A debugger will help you isolate and identify out of bounds memory references.Understand every line of the malloc implementation in the textbook.The textbook has a detailed example of a simple allocator based on an implicit free list.Use this as a point of departure.Don’t start working on your allocator until you understand everything about the simple implicit list allocator.Encapsulate your pointer arithmetic in C preprocessor macros or gcc in-line functions.  Pointer arithmetic in memory managers is confusing and error-prone because of all the casting that is necessary.You can reduce the complexity significantly by writing macros for your pointer operations.See the text for examples.Do your implementation in stages.The first 9 traces contain requests to malloc and free.The last 2 traces contain requests for realloc, malloc, and free.We recommend that you start by getting your malloc and free routines working correctly and efficiently on the first 9 traces.Only then should you turn your attention to the realloc implementation.For starters, build realloc on top of your existing malloc and free implementations.Write a heap consistency checker. Dynamic memory allocators are notoriously tricky beasts to program correctly and efficiently.They are difficult to program correctly because they involve a lot of untyped pointer manipulation.You will find it very helpful to write a heap checker that scans the heap and checks it for consistency. 
 Some examples questions your heap checker might answer are: 
 
 ·        Is every block in the free list marked as free? 
@@ -94,7 +90,7 @@ Some examples questions your heap checker might answer are:
 
 If you do choose to write a heap checker, your checker will consist of the function int mm_check(void) in mm.c.  It will check any invariants or consistency conditions you consider prudent.It returns a nonzero value if and only if your heap is consistent.You are not limited to the listed suggestions nor are you required to check all of them.You are encouraged to print out error messages when mm_check fails. 
 
-This consistency checker is for your own debugging during development.  When you submit mm.c,= make sure to remove any calls to mm_check as = they will slow down your throughput.   
+This consistency checker is for your own debugging during development.  When you submit mm.c,make sure to remove any calls to mm_check as they will slow down your throughput.   
 
 Start early! It is possible to write an efficient malloc package with a few pages of code.However, we can guarantee that it will be some of the most difficult and sophisticated code you have written so far in your career.So start early, and good luck! 
 
@@ -114,6 +110,6 @@ Included any appropriate commentary on your code= in a separate README file or a
 
 DUE DATE
 
-1:55 pm, Sunday, April 14. 
+11:55 pm, Sunday, April 14. 
 
   

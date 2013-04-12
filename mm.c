@@ -79,10 +79,10 @@ team_t team = {
 
 /*Given the pointer of a free block get the address of next/prev block*/
 
-#define GET_PREV_FREE_BLKP(bp) ((int *)((char *)bp - DSIZE))
-#define GET_NEXT_FREE_BLKP(bp) ((int *)((char *)bp - WSIZE)) 
-#define GET_NEXT_FREE_BLKP_VAL(bp) *((int *)((char *)bp - WSIZE))
-#define GET_PREV_FREE_BLKP_VAL(bp) *((int *)((char *)bp - DSIZE)) 
+#define GET_PREV_FREE_BLKP(bp) ((int *)(bp))
+#define GET_NEXT_FREE_BLKP(bp) ((int *)((char *)bp + WSIZE)) 
+#define GET_NEXT_FREE_BLKP_VAL(bp) *((int *)((char *)bp + WSIZE))
+#define GET_PREV_FREE_BLKP_VAL(bp) *((int *)bp) 
 
 /*heap_listp is the beginning of the heap pointer and head is the beginning of the List and tail points to last block in the list*/
 char *heap_listp;
@@ -100,7 +100,7 @@ static void *find_fit(size_t asize);
 */
 int mm_init(void)
 {
-	heap_listp = mem_heap_lo();;
+	heap_listp = mem_heap_lo();
 	if ((heap_listp = mem_sbrk(4*WSIZE)) == NULL)	
 		return -1; 
 
@@ -118,7 +118,7 @@ int mm_init(void)
 		return -1; 
 
 	//Head is pointing to the first Free Block in the List 
-	head = heap_listp + DSIZE ;	
+	head = heap_listp + DSIZE;	
 	tail = head;
 
 	return 0;
@@ -167,29 +167,53 @@ void *mm_malloc(size_t size)
 void mm_free(void *ptr)
 {
 	size_t size = GET_SIZE(HDRP(ptr)); 
-	int *temp,*temp1,*prev;
-	temp = (int *)ptr;	
+	int *temp,*temp1,*prev,*next;
 	
+	temp = (int *)ptr;	
+	prev = GET_PREV_FREE_BLKP(ptr);
+
 	//Simply free the allocated block and coalesce it accordindly depending on whether next/prev blocks are free/allocated
 	PUT(HDRP(ptr), PACK(size, 0)); 
    	PUT(FTRP(ptr), PACK(size, 0)); 
-	//Also add this free block to the list of free blocks so find the previous free block in the list and insert this one in between
+	
+	 //And also set next free block field to NULL since this is the last block
+        next = GET_NEXT_FREE_BLKP(ptr);
+        
+        //Also add this free block to the list of free blocks so find the previous free block in the list and insert this one in between
 	while(GET_ALLOC(HDRP(PREV_BLKP(temp)))){
 		if(GET_SIZE(HDRP(PREV_BLKP(temp))) == 8)
 			break;
 		else
 			temp = (int *)PREV_BLKP(temp);
-	}		
-
+	}
+		
+//After the loop ends temp still points to block after the free block or the first block after prologue so go one step back and also set next pointer of previous block to this free block which is what temp1 does
 	if(!GET_ALLOC(HDRP(PREV_BLKP(temp)))){
                 temp = (int *)PREV_BLKP(temp);
-                temp1 = (int *)((char *)temp - WSIZE);
+                temp1 = GET_NEXT_FREE_BLKP(temp);
+		*next = *temp1;				
                 *temp1 = (int *)ptr;
-        }else
-                *temp = NULL;
-	*prev = temp;	
+		*prev = temp;
+	//If there is no free block before this one then check for the free block after ptr
+        }else{
+		*prev = NULL;
+		temp = (int *)ptr;
+        	while(GET_ALLOC(HDRP(NEXT_BLKP(temp)))){
+			temp = (int *)NEXT_BLKP(temp);
+		}
+		//Set the next to next free blk found and prev of that blkp to ptr
+		if(!GET_ALLOC(HDRP(NEXT_BLKP(temp))) && (GET_SIZE(HDRP(NEXT_BLKP(temp)) != 0))){
+			temp = (int *)NEXT_BLKP(temp);
+			temp1 = GET_PREV_FREE_BLKP(temp);
+			*temp1 = (int *)ptr;
+			*next = (int *)temp;
+		//There is no free blkp after this or before this so this is the only free blk
+		}else{
+			*next = NULL;
+		}
+	}
 
-	coalesce(ptr); 
+	return coalesce(ptr); 
 }
 
 /*
@@ -245,7 +269,7 @@ static void *extend_heap(size_t words) {
 //After the loop ends temp still points to block after the free block or the first block after prologue so go one step back and also set next pointer of previous block to this free block which is what temp1 does
 	if(!GET_ALLOC(HDRP(PREV_BLKP(temp)))){
 		temp = (int *)PREV_BLKP(temp);			
-		temp1 = (int *)((char *)temp - WSIZE);
+		temp1 = GET_NEXT_FREE_BLKP(temp);
 		*temp1 = (int *)bp;
 	}else{ 
 		temp = GET_PREV_FREE_BLKP(bp);
@@ -329,15 +353,33 @@ static void *find_fit(size_t asize) {
 
 static void place(void *bp, size_t asize) {
 	 size_t csize = GET_SIZE(HDRP(bp));
-	
+	 int *prev,*next,*prev1,*next1,*prevFreeBlk,*nextFreeBlk;	
+
     	 //If the space allocated has padding greater then a word then split the block into 2 parts or else do place it directly 
-	 if ((csize - asize) >= (DSIZE + OVERHEAD)) {
+	 if ((csize - asize) >= (DSIZE + OVERHEAD)){
+		prevFreeBlk = GET_PREV_FREE_BLKP_VAL(bp);
+		nextFreeBlk = GET_NEXT_FREE_BLKP_VAL(bp);
 		PUT(HDRP(bp), PACK(asize, 1));
 		PUT(FTRP(bp), PACK(asize, 1)); 
 		bp = NEXT_BLKP(bp); 
 		PUT(HDRP(bp), PACK(csize-asize, 0)); 	
-		PUT(FTRP(bp), PACK(csize-asize, 0)); 
+		PUT(FTRP(bp), PACK(csize-asize, 0));
+		prev = GET_PREV_FREE_BLKP(bp);
+		next = GET_NEXT_FREE_BLKP(bp);
+		*prev = prevFreeBlk;
+		*next = nextFreeBlk;
+		prev1 = GET_PREV_FREE_BLKP(nextFreeBlk);
+		next1 = GET_NEXT_FREE_BLKP(prevFreeBlk);
+		*prev1 = bp;
+		*next1 = bp;		
+	//If not splitted then simply remove this block from the list of free blocks 
 	} else { 
+		prevFreeBlk = GET_PREV_FREE_BLKP_VAL(bp);
+		nextFreeBlk = GET_NEXT_FREE_BLKP_VAL(bp);
+		prev = GET_NEXT_FREE_BLKP(prevFreeBlk);
+		next = GET_PREV_FREE_BLKP(nextFreeBlk);
+		*prev = nextFreeBlk;
+		*next = prevFreeBlk;
 		PUT(HDRP(bp), PACK(csize, 1)); 
 		PUT(FTRP(bp), PACK(csize, 1)); 
 	} 
